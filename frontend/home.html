@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasks Page</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f2f2f2;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .header {
+        text-align: center;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 0;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        user-select: none;
+    }
+    #add {
+        font-size: xxx-large;
+        text-align: center;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 0;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        user-select: none;
+    }
+    .task {
+        background-color: #ffffff;
+        border: 2px solid #4CAF50;
+        border-radius: 10px;
+        padding: 10px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+    }
+    .desc {
+      color: grey;
+    }
+    .deadline {
+      width: fit-content;
+      padding: 2px 5px;
+      border-radius: 5px;
+      border-width: 1px;
+      border-color: black;
+      border-style: solid;
+    }
+    .task-radio {
+        margin-right: 20px;
+        transform: scale(1.5);
+    }
+    
+    dialog {
+      width: 75%;
+      max-width: 800px;
+      border-radius: 10px;
+      border: 2px solid #4CAF50;
+    }
+
+    ::backdrop {
+      background: grey;
+      opacity: 0.75;
+    }
+
+    form {
+      display: grid;
+      gap: 5px;
+      grid-template-rows: 1fr 2fr 1fr;
+    }
+
+    .task-content {
+      width: 100%;
+    }
+
+    .title {
+      grid-row: 1;
+    }
+
+    .desc {
+      grid-row: 2;
+      overflow-y: hidden;
+    }
+
+    .deadline {
+      grid-row: 3;
+    }
+
+    .button {
+      top:0;
+      right:0;
+      width: fit-content;
+      font-size: large;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 10px;
+      user-select: none;
+      margin: 10px auto;
+    }
+
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Tasks</h2>
+    </div>
+    <div id="add">
+      +
+    </div>
+    <div id="tasks"></div>
+    <div id="completed-tasks"></div>
+</div>
+<dialog id="create-dialog">
+  <form id="create-form">
+    <input type="text" placeholder="title" class="title" id="title-create"/>
+    <textarea placeholder="description" class="desc" id="desc-create"></textarea>
+    <input type="datetime-local" class="deadline" id="deadline-create"/>
+  </form>
+  <div class="button" id="create-button">save</div>
+</dialog>
+<dialog id="update-dialog">
+  <form id="update-form">
+    <input type="text" placeholder="title" class="title" id="title-update"/>
+    <textarea placeholder="description" class="desc" id="desc-update"></textarea>
+    <input type="datetime-local" class="deadline" id="deadline-update"/>
+  </form>
+  <div class="button" id="update-button">save</div>
+</dialog>
+<script>
+  const url = document.location.href;
+  const tasksElement = document.getElementById('tasks');
+  const completedTasksElement = document.getElementById('completed-tasks');
+  const createDialog = document.querySelector('#create-dialog');
+  const updateDialog = document.querySelector('#update-dialog');
+  const updateButton = updateDialog.querySelector('#update-button');
+  const updateForm = updateDialog.querySelector('#update-form');
+  const updateTitle = updateForm.querySelector('#title-update');
+  const updateDesc = updateForm.querySelector('#desc-update');
+  const updateDeadline = updateForm.querySelector('#deadline-update');
+
+  const addTask = (task) => {
+    const taskElement = document.createElement('div');
+    taskElement.className = 'task';
+    taskElement.id = task.id;
+    if(task.completed){
+      completedTasksElement.appendChild(taskElement);
+    }
+    else
+      tasksElement.appendChild(taskElement);
+
+    const radioButton = document.createElement('input');
+    radioButton.className = 'task-radio';
+    radioButton.setAttribute('type', 'radio');
+    radioButton.checked = task.completed;
+    radioButton.addEventListener('click', () => {
+      if(taskElement.parentElement == tasksElement){
+        task.completed = true;
+        tasksElement.removeChild(taskElement);
+        completedTasksElement.appendChild(taskElement);
+      }
+      else{
+        task.completed = false;
+        radioButton.checked = false;
+        completedTasksElement.removeChild(taskElement);
+        tasksElement.appendChild(taskElement);
+      }
+      console.log(task);
+      updateTask(task);
+    })
+
+    taskElement.appendChild(radioButton);
+    const taskContent = document.createElement('div');
+    taskContent.className = 'task-content';
+    taskElement.appendChild(taskContent);
+    const title = document.createElement('p');
+    title.className = 'title';
+    title.appendChild(document.createTextNode(task.title));
+    taskContent.appendChild(title);
+    const desc = document.createElement('p');
+    desc.className = 'desc';
+    desc.appendChild(document.createTextNode(task.desc));
+    taskContent.appendChild(desc);
+    if(task.deadline){
+      var deadline = document.createElement('div');
+      deadline.className = 'deadline';
+      deadline.appendChild(document.createTextNode(task.deadline));
+      taskContent.appendChild(deadline);
+    }
+// TODO: not finished yet
+    taskContent.addEventListener('click', () => {
+      updateDialog.showModal();
+      updateTitle.value = title.innerText;
+      updateDesc.value = desc.innerText;
+      updateDeadline.value = deadline.innerText;
+      updateDialog.setAttribute('tid', task.id);
+      updateDialog.setAttribute('completed', task.completed);
+    });
+
+  }
+
+  const getTasks = async () => {
+    const res = await fetch(`${url}api/v1/tasks`);
+    const json = await res.json();
+    json.tasks.forEach(task => {
+      addTask(task);
+    });
+  }
+  getTasks();
+  
+  updateButton.addEventListener('click', () => {
+    let task = {};
+    task.id = updateDialog.getAttribute('tid');
+    task.title = updateTitle.value;
+    task.desc = updateDesc.value;
+    task.deadline = updateDeadline.value;
+    task.completed = (updateDialog.getAttribute('completed') === 'true');
+    const taskElement = document.getElementById(task.id);
+    taskElement.querySelector('.title').innerText = task.title;
+    taskElement.querySelector('.desc').innerText = task.desc;
+    const deadline = taskElement.querySelector('.deadline');
+    if(deadline)
+    deadline.innerText = task.deadline;
+    updateTask(task);
+    updateDialog.close();
+  })
+
+  const createTask = (task) => {
+    return fetch(`${url}api/v1/tasks`, {body: JSON.stringify(task),
+      method: 'POST',
+      headers: {"Content-type": "application/json; charset=UTF-8"}})
+  }
+  
+  const updateTask = (task) => {
+    return fetch(`${url}api/v1/tasks/${task.id}`, {body: JSON.stringify(task),
+      method: 'PUT',
+      headers: {"Content-type": "application/json; charset=UTF-8"}})
+  }
+
+  const addButton = document.getElementById('add');
+  addButton.addEventListener('click', () => {
+    createDialog.showModal();
+  });
+  
+  updateDialog.addEventListener('click', (event) => {
+    const rect = updateDialog.getBoundingClientRect();
+    const isInDialog = event.clientY <= rect.bottom && event.clientY >= rect.top && event.clientX >= rect.left && event.clientX <= rect.right;
+    if (!isInDialog)
+      updateDialog.close();
+  });
+
+  updateDialog.addEventListener('close', () => {
+    updateDialog.querySelector('form').reset();
+  })
+
+  createDialog.addEventListener('click', (event) => {
+    const rect = createDialog.getBoundingClientRect();
+    const isInDialog = event.clientY <= rect.bottom && event.clientY >= rect.top && event.clientX >= rect.left && event.clientX <= rect.right;
+    if (!isInDialog)
+      createDialog.close();
+  });
+
+  createDialog.addEventListener('close', () => {
+    createDialog.querySelector('form').reset();
+  })
+
+  createDialog.querySelector('#create-button').addEventListener('click', () => {
+    const form = createDialog.querySelector('form');
+    const title = form.querySelector('#title-create').value;
+    const desc = form.querySelector('#desc-create').value;
+    const deadline = form.querySelector('#deadline-create').value;
+    const task = {title, desc, deadline};
+    addTask(task);
+    createDialog.close();
+    const header = document.querySelector('h2');
+    header.innerText = 'syncing with server...'
+    // TODO: not finished yet, handling errors, checking if succceed and partial refresh if neccessary
+    createTask(task)
+    .then(() => {
+      setInterval(() => header.innerText = 'synced!', 2000);
+      setInterval(() => header.innerText = 'Tasks', 5000);
+    })
+    .catch(() => {
+      header.nodeValue = 'error'
+    });
+  })
+</script>
+</body>
+</html>
