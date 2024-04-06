@@ -176,7 +176,6 @@
         completedTasksElement.removeChild(taskElement);
         tasksElement.appendChild(taskElement);
       }
-      console.log(task);
       updateTask(task);
     })
 
@@ -192,8 +191,8 @@
     desc.className = 'desc';
     desc.appendChild(document.createTextNode(task.desc));
     taskContent.appendChild(desc);
+    var deadline = document.createElement('div');
     if(task.deadline){
-      var deadline = document.createElement('div');
       deadline.className = 'deadline';
       deadline.appendChild(document.createTextNode(task.deadline));
       taskContent.appendChild(deadline);
@@ -204,7 +203,7 @@
       updateTitle.value = title.innerText;
       updateDesc.value = desc.innerText;
       updateDeadline.value = deadline.innerText;
-      updateDialog.setAttribute('tid', task.id);
+      updateDialog.setAttribute('task-id', task.id);
       updateDialog.setAttribute('completed', task.completed);
     });
 
@@ -221,7 +220,7 @@
   
   updateButton.addEventListener('click', () => {
     let task = {};
-    task.id = updateDialog.getAttribute('tid');
+    task.id = updateDialog.getAttribute('task-id');
     task.title = updateTitle.value;
     task.desc = updateDesc.value;
     task.deadline = updateDeadline.value;
@@ -231,7 +230,7 @@
     taskElement.querySelector('.desc').innerText = task.desc;
     const deadline = taskElement.querySelector('.deadline');
     if(deadline)
-    deadline.innerText = task.deadline;
+      deadline.value = task.deadline;
     updateTask(task);
     updateDialog.close();
   })
@@ -288,8 +287,8 @@
     // TODO: not finished yet, handling errors, checking if succceed and partial refresh if neccessary
     createTask(task)
     .then(() => {
-      setInterval(() => header.innerText = 'synced!', 2000);
-      setInterval(() => header.innerText = 'Tasks', 5000);
+      setTimeout(() => header.innerText = 'synced!', 2000);
+      setTimeout(() => header.innerText = 'Tasks', 5000);
     })
     .catch(() => {
       header.nodeValue = 'error'
